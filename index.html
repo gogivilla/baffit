@@ -211,7 +211,7 @@ nav button.on b{filter:none;opacity:1}
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<input type="file" id="fileIn" accept=".json,application/json" style="display:none">
+<input type="file" id="fileIn" style="display:none">
 
 <script>
 /* ===== Категории — как в таблице БАФФИТ ===== */
@@ -386,14 +386,21 @@ function moreHTML(){
 }
 
 /* ===== Экспорт / копия ===== */
-async function giveFile(name, text, type){
+async function giveFile(name, text){
+  // text/plain — этот тип принимают Telegram, «Файлы» и почта и на iPhone, и на Android
+  const type = 'text/plain';
   const blob = new Blob([text], {type});
-  try{
-    const f = new File([blob], name, {type});
-    if(navigator.canShare && navigator.canShare({files:[f]})){ await navigator.share({files:[f], title:name}); return; }
-  }catch(e){ if(e && e.name==='AbortError') return; }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 1000);
+  let f = null;
+  try{ f = new File([blob], name, {type}); }catch(e){}
+  if(f && navigator.canShare && navigator.canShare({files:[f]})){
+    try{ await navigator.share({files:[f]}); return; }
+    catch(e){ if(e && e.name==='AbortError') return; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url); a.remove();}, 60000);
+  toast('Файл сохранён в «Загрузки» — отправьте его в Telegram оттуда');
 }
 const csvCell = v => { const s=String(v??''); return /[;"\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
 const csv = rows => '﻿' + rows.map(r=>r.map(csvCell).join(';')).join('\r\n');
@@ -415,14 +422,14 @@ function exportGrid(){
   rows.push(['Итого за день','', ...days.map(d=>cell(exp.filter(o=>+o.date.slice(8)===d)))]);
   rows.push([], ['Доходы за месяц', cell(ops.filter(o=>o.t==='inc'))], ['Расходы за месяц', cell(exp)],
     ['Сальдо', nfmt(sum(ops.filter(o=>o.t==='inc'))-sum(exp))], ['Личные расходы', cell(exp.filter(o=>groupOf(o.cat)==='personal'))], ['Магаз (BITSHOP)', cell(exp.filter(o=>groupOf(o.cat)==='shop'))]);
-  giveFile(`БАФФИТ ${monthName(cur)}.csv`, csv(rows), 'text/csv');
+  giveFile(`baffit-${cur}.csv`, csv(rows));
 }
 function exportList(){
   const rows = [['Дата','Тип','Категория','Сумма','Счёт','Комментарий'],
     ...data.ops.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(o=>[o.date.split('-').reverse().join('.'), o.t==='inc'?'Доход':'Расход', o.cat, nfmt(o.amt), o.src||'', o.note||''])];
-  giveFile(`БАФФИТ операции ${todayISO()}.csv`, csv(rows), 'text/csv');
+  giveFile(`baffit-operacii-${todayISO()}.csv`, csv(rows));
 }
-function backup(){ giveFile(`БАФФИТ копия ${todayISO()}.json`, JSON.stringify(data), 'application/json'); }
+function backup(){ giveFile(`baffit-kopiya-${todayISO()}.json`, JSON.stringify(data)); }
 document.getElementById('fileIn').addEventListener('change', async e=>{
   const f = e.target.files[0]; e.target.value=''; if(!f) return;
   try{
