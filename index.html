@@ -370,7 +370,8 @@ function moreHTML(){
     <button class="btn" id="exList"><span class="emo">📋</span><span>Все операции списком<small>Дата, тип, категория, сумма, счёт</small></span></button>
   </div>
   <div class="card"><h2>🛟 Резервная копия</h2>
-    <p class="note">Данные живут только в этом телефоне. Раз в неделю-две сохраняйте копию себе в Telegram «Избранное».</p>
+    <p class="note">Данные живут только в этом телефоне. Раз в неделю-две сохраняйте копию.</p>
+    <p class="note"><b>Как отправить в Telegram:</b> в меню «Поделиться» выберите <b>«Сохранить в Файлы»</b>, потом в Telegram: скрепка → Файл → выберите сохранённый файл. Прямая отправка в Telegram из меню иногда зависает — это ошибка самого Telegram.</p>
     <button class="btn" id="backup"><span class="emo">💾</span><span>Сохранить копию<small>Файл .json со всеми записями</small></span></button>
     <button class="btn" id="restore"><span class="emo">📥</span><span>Загрузить копию / историю<small>Добавит записи из файла, дубли пропустит</small></span></button>
   </div>
@@ -386,9 +387,9 @@ function moreHTML(){
 }
 
 /* ===== Экспорт / копия ===== */
-async function giveFile(name, text){
+async function giveFile(name, text, type){
   // text/plain — этот тип принимают Telegram, «Файлы» и почта и на iPhone, и на Android
-  const type = 'text/plain';
+  type = type || 'text/plain';
   const blob = new Blob([text], {type});
   let f = null;
   try{ f = new File([blob], name, {type}); }catch(e){}
@@ -422,14 +423,14 @@ function exportGrid(){
   rows.push(['Итого за день','', ...days.map(d=>cell(exp.filter(o=>+o.date.slice(8)===d)))]);
   rows.push([], ['Доходы за месяц', cell(ops.filter(o=>o.t==='inc'))], ['Расходы за месяц', cell(exp)],
     ['Сальдо', nfmt(sum(ops.filter(o=>o.t==='inc'))-sum(exp))], ['Личные расходы', cell(exp.filter(o=>groupOf(o.cat)==='personal'))], ['Магаз (BITSHOP)', cell(exp.filter(o=>groupOf(o.cat)==='shop'))]);
-  giveFile(`baffit-${cur}.csv`, csv(rows));
+  giveFile(`baffit-${cur}.csv`, csv(rows), 'text/csv');
 }
 function exportList(){
   const rows = [['Дата','Тип','Категория','Сумма','Счёт','Комментарий'],
     ...data.ops.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(o=>[o.date.split('-').reverse().join('.'), o.t==='inc'?'Доход':'Расход', o.cat, nfmt(o.amt), o.src||'', o.note||''])];
-  giveFile(`baffit-operacii-${todayISO()}.csv`, csv(rows));
+  giveFile(`baffit-operacii-${todayISO()}.csv`, csv(rows), 'text/csv');
 }
-function backup(){ giveFile(`baffit-kopiya-${todayISO()}.json`, JSON.stringify(data)); }
+function backup(){ giveFile(`baffit-kopiya-${todayISO()}.txt`, JSON.stringify(data), 'text/plain'); }
 document.getElementById('fileIn').addEventListener('change', async e=>{
   const f = e.target.files[0]; e.target.value=''; if(!f) return;
   try{
