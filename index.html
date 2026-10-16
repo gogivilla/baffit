@@ -152,6 +152,11 @@ nav button.on b{filter:none;opacity:1}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{padding:8px 12px 8px 9px;border-radius:14px;background:var(--surface-2);font-size:14px;font-weight:600;border:2px solid transparent;text-align:left}
 .chip.on{background:var(--chip-on);border-color:var(--violet);font-weight:800}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:76px;padding:8px 4px;border-radius:16px;background:var(--surface-2);border:2px solid transparent;font-size:12.5px;font-weight:700;line-height:1.15;text-align:center;color:var(--ink-2)}
+.cbtn i{font-style:normal;font-size:26px;line-height:1}
+.cbtn:active{transform:scale(.96)}
+.cbtn.on{background:var(--chip-on);border-color:var(--violet);color:var(--ink)}
 .row2{display:flex;gap:8px}
 .field{width:100%;padding:12px;border:0;border-radius:14px;background:var(--surface-2);font-weight:600}
 .save{width:100%;height:56px;border-radius:20px;color:#fff;font-weight:800;font-size:17px;margin-top:16px}
@@ -215,29 +220,47 @@ nav button.on b{filter:none;opacity:1}
 
 <script>
 /* ===== Категории — как в таблице БАФФИТ ===== */
-const INCOME = ['Зарплата','BITSHOP (Приход)','Дивиденды 1.5 Тинек','Дивиденды 335','Разное'];
+const INCOME = ['Зарплата','Наличные IT','BITSHOP (Приход)','Наличные BITSHOP','Вклад','Инвестиции','Разное'];
 const SHOP_INCOME = 'BITSHOP (Приход)';
+const SHOP_INCOMES = ['BITSHOP (Приход)','Наличные BITSHOP'];
 const SOURCES = ['Наличка','Тинек','Сбер','Инвойсбокс / СДЭК / Р/С'];
 const EXP_GROUPS = [
   {key:'personal', name:'Личные расходы', cats:[
-    'Автомобиль','Вредные привычки / жижа, сиги','Алкоголь','Гигиена и здоровье','Магазин продукты домой',
-    'Кафешки + пьянки','Квартплата + ипотека + услуги специалистов','Долги','Подарки','Развлечения и подарки',
-    'Связь (телефон, интернет, банки, подписки)']},
+    'Магазин продукты домой','Кафешки','Пьянки','Такси','Автомобиль','Никотин','Алкоголь','Гигиена и здоровье',
+    'Квартплата + ипотека + услуги специалистов','Связь (телефон, интернет, банки, подписки)','Развлечения','Подарки','Долги']},
   {key:'shop', name:'BITSHOP (магаз)', cats:[
-    'BITSHOP еда в офис','BITSHOP (пошив + гейзер + WB + ткань + работа)','BITSHOP (СДЭК) и Достависта, такси, самокат',
+    'BITSHOP закупка ткани','BITSHOP работа/пошив','BITSHOP WB/Ozon','BITSHOP МП','BITSHOP гейзер',
+    'BITSHOP еда в офис, самокат','BITSHOP (СДЭК) и Достависта, такси, самокат',
     'BITSHOP расходники','BITSHOP коммуналка, аренда, уборка','BITSHOP налоги + банк + развитие, домен']},
   {key:'other', name:'Прочее', cats:['ЗАРПЛАТА']}
 ];
+// Переименования — старые записи автоматически получают новые названия
+const RENAME = {
+  'Дивиденды 1.5 Тинек':'Вклад','Дивиденды 335':'Инвестиции','Вредные привычки / жижа, сиги':'Никотин',
+  'Развлечения и подарки':'Развлечения','BITSHOP еда в офис':'BITSHOP еда в офис, самокат'
+};
+const migrate = ops => { let n=0; ops.forEach(o=>{ if(o && RENAME[o.cat]){ o.cat=RENAME[o.cat]; n++; } }); return n; };
 const CAT_GROUP = {}; EXP_GROUPS.forEach(g=>g.cats.forEach(c=>CAT_GROUP[c]=g.key));
 const groupOf = c => CAT_GROUP[c] || (/^BITSHOP/.test(c) ? 'shop' : 'personal');
 const EMO = {
-  'Автомобиль':'🚗','Вредные привычки / жижа, сиги':'💨','Алкоголь':'🍷','Гигиена и здоровье':'💊','Магазин продукты домой':'🛒',
-  'Кафешки + пьянки':'🍔','Квартплата + ипотека + услуги специалистов':'🏠','Долги':'💸','Подарки':'🎁','Развлечения и подарки':'🎉',
+  'Автомобиль':'🚗','Никотин':'💨','Алкоголь':'🍷','Гигиена и здоровье':'💊','Магазин продукты домой':'🛒',
+  'Кафешки':'☕','Пьянки':'🍻','Такси':'🚕','Кафешки + пьянки':'🍔','Квартплата + ипотека + услуги специалистов':'🏠','Долги':'💸','Подарки':'🎁','Развлечения':'🎉',
   'Связь (телефон, интернет, банки, подписки)':'📱','Поездки (транспорт, такси) ЗСД':'🚕','Бытовые нужды':'🧺',
-  'BITSHOP еда в офис':'🍱','BITSHOP (пошив + гейзер + WB + ткань + работа)':'🧵','BITSHOP (СДЭК) и Достависта, такси, самокат':'📦',
+  'BITSHOP закупка ткани':'🧶','BITSHOP работа/пошив':'🧵','BITSHOP WB/Ozon':'🟣','BITSHOP МП':'🏬','BITSHOP гейзер':'♨️',
+  'BITSHOP еда в офис, самокат':'🍱','BITSHOP (пошив + гейзер + WB + ткань + работа)':'🧵','BITSHOP (СДЭК) и Достависта, такси, самокат':'📦',
   'BITSHOP расходники':'🧴','BITSHOP коммуналка, аренда, уборка':'🏢','BITSHOP налоги + банк + развитие, домен':'🧾','ЗАРПЛАТА':'👥',
-  'Зарплата':'💼','BITSHOP (Приход)':'🛍️','Разное':'✨'
+  'Зарплата':'💼','Наличные IT':'💵','BITSHOP (Приход)':'🛍️','Наличные BITSHOP':'💴','Вклад':'🏦','Инвестиции':'📈','Разное':'✨'
 };
+const LABEL = {
+  'Квартплата + ипотека + услуги специалистов':'Квартплата, ипотека',
+  'Связь (телефон, интернет, банки, подписки)':'Связь, подписки',
+  'Магазин продукты домой':'Продукты домой','Гигиена и здоровье':'Здоровье',
+  'BITSHOP (СДЭК) и Достависта, такси, самокат':'СДЭК, Достависта',
+  'BITSHOP коммуналка, аренда, уборка':'Аренда, коммуналка',
+  'BITSHOP налоги + банк + развитие, домен':'Налоги, банк',
+  'BITSHOP (Приход)':'BITSHOP приход'
+};
+const label = c => { const t = LABEL[c] || short(c); return t.charAt(0).toUpperCase() + t.slice(1); };
 const emo = c => EMO[c] || (/^Дивиденды/.test(c) ? '📈' : '•');
 const short = c => c.replace(/^BITSHOP\s*/,'').replace(/^\((.*?)\)/,'$1');
 
@@ -245,7 +268,7 @@ const short = c => c.replace(/^BITSHOP\s*/,'').replace(/^\((.*?)\)/,'$1');
 const KEY = 'baffit.v1';
 let mem = null;
 function load(){
-  try{ const s = localStorage.getItem(KEY); if(s) return JSON.parse(s); }catch(e){}
+  try{ const s = localStorage.getItem(KEY); if(s){ const d = JSON.parse(s); if(migrate(d.ops)) try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(e){} return d; } }catch(e){}
   return mem || {v:1, ops:[]};
 }
 function persist(){
@@ -299,7 +322,7 @@ function homeHTML(){
   const I = sum(inc), E = sum(exp), S = I - E;
   const personal = sum(exp.filter(o=>groupOf(o.cat)==='personal'));
   const shop = sum(exp.filter(o=>groupOf(o.cat)==='shop'));
-  const shopIn = sum(inc.filter(o=>o.cat===SHOP_INCOME));
+  const shopIn = sum(inc.filter(o=>SHOP_INCOMES.includes(o.cat)));
 
   let h = `<div class="hero">
     <div class="lbl">Сальдо за месяц</div>
@@ -327,7 +350,7 @@ function homeHTML(){
   const irows = Object.entries(byInc).map(([k,v])=>({name:k,v,cls:'inc'})).sort((a,b)=>b.v-a.v);
   h += `<div class="card"><h2>Откуда пришли</h2>${irows.length? bars(irows, I) : '<div class="empty"><span class="big">💰</span>Доходов за месяц пока нет</div>'}`;
   if(shopIn){
-    const bySrc = {}; inc.filter(o=>o.cat===SHOP_INCOME).forEach(o=>{const s=o.src||'Не указано'; bySrc[s]=(bySrc[s]||0)+o.amt;});
+    const bySrc = {}; inc.filter(o=>SHOP_INCOMES.includes(o.cat)).forEach(o=>{const s=o.cat==='Наличные BITSHOP'?'Наличные':(o.src||'Не указано'); bySrc[s]=(bySrc[s]||0)+o.amt;});
     h += `<div class="lbl2">BITSHOP приход по счетам</div><table>${Object.entries(bySrc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${money(v)}</td></tr>`).join('')}</table>`;
   }
   h += `</div>`;
@@ -434,7 +457,7 @@ function backup(){ giveFile(`baffit-kopiya-${todayISO()}.txt`, JSON.stringify(da
 document.getElementById('fileIn').addEventListener('change', async e=>{
   const f = e.target.files[0]; e.target.value=''; if(!f) return;
   try{
-    const d = JSON.parse(await f.text()); if(!d || !Array.isArray(d.ops)) throw 0;
+    const d = JSON.parse(await f.text()); if(!d || !Array.isArray(d.ops)) throw 0; migrate(d.ops);
     const have = new Set(data.ops.map(o=>o.id)); let n=0;
     d.ops.forEach(o=>{ if(o && o.id && !have.has(o.id) && o.amt>0 && o.date){ data.ops.push(o); have.add(o.id); n++; } });
     persist(); render(); toast(`Добавлено записей: ${n}`);
@@ -445,15 +468,16 @@ document.getElementById('fileIn').addEventListener('change', async e=>{
 const M = { t:'exp', cat:null, src:null, id:null };
 const $ = id => document.getElementById(id);
 const chip = (c,label,on,attr='c') => `<button class="chip ${on?'on':''}" data-${attr}="${esc(c)}">${attr==='c'?emo(c)+' ':''}${esc(label)}</button>`;
+const cbtn = (c,on) => `<button class="cbtn ${on?'on':''}" data-c="${esc(c)}"><i>${emo(c)}</i><span>${esc(label(c))}</span></button>`;
 function drawCats(){
   document.querySelectorAll('#typeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.t===M.t));
   let h='';
   const known = M.t==='exp' ? EXP_GROUPS.flatMap(g=>g.cats) : INCOME;
   if(M.cat && !known.includes(M.cat)) h += `<div class="lbl2">Из истории</div><div class="chips">${chip(M.cat,M.cat,true)}</div>`;
   if(M.t==='exp'){
-    EXP_GROUPS.forEach(g=>{ h+=`<div class="lbl2">${g.name}</div><div class="chips">${g.cats.map(c=>chip(c, g.key==='shop'?short(c):c, M.cat===c)).join('')}</div>`; });
+    EXP_GROUPS.forEach(g=>{ h+=`<div class="lbl2">${g.name}</div><div class="cgrid">${g.cats.map(c=>cbtn(c, M.cat===c)).join('')}</div>`; });
   } else {
-    h += `<div class="lbl2">Категория дохода</div><div class="chips">${INCOME.map(c=>chip(c,c,M.cat===c)).join('')}</div>`;
+    h += `<div class="lbl2">Категория дохода</div><div class="cgrid">${INCOME.map(c=>cbtn(c,M.cat===c)).join('')}</div>`;
   }
   $('cats').innerHTML = h;
   const showSrc = M.t==='inc' && M.cat===SHOP_INCOME;
@@ -480,7 +504,7 @@ function parseAmt(s){
   return s.split('+').filter(Boolean).reduce((a,x)=>a+parseFloat(x),0);
 }
 $('typeSeg').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; if(M.t!==b.dataset.t){ M.t=b.dataset.t; M.cat=null; M.src=null; } drawCats(); });
-$('cats').addEventListener('click', e=>{ const b=e.target.closest('.chip'); if(!b) return; M.cat=b.dataset.c; if(M.cat!==SHOP_INCOME) M.src=null; drawCats(); });
+$('cats').addEventListener('click', e=>{ const b=e.target.closest('.chip,.cbtn'); if(!b) return; M.cat=b.dataset.c; if(M.cat!==SHOP_INCOME) M.src=null; drawCats(); });
 $('srcs').addEventListener('click', e=>{ const b=e.target.closest('.chip'); if(!b) return; M.src=b.dataset.s; drawCats(); });
 $('scrim').addEventListener('click', closeSheet);
 $('closeX').addEventListener('click', closeSheet);
